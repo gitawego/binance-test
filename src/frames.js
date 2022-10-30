@@ -19,7 +19,7 @@ function maskingData(data, maskingKey) {
  *    fin?:number;
  *    masking?: boolean;
  * }} FrameOptions
- * @param {any} data
+ * @param {string | Buffer} data
  * @param {FrameOptions} options
  * @returns
  */
@@ -56,3 +56,207 @@ export function makeFrame(data, options = {}) {
 
   return frame;
 }
+
+/**
+ *
+ * @param {Buffer} buf
+ * @returns
+ */
+export function arrayBufferToString(buf) {
+  const enc = new TextDecoder("utf-8");
+  return enc.decode(buf);
+}
+
+/**
+ * @typedef{{
+ *  '@operator': number | null;
+ *  '@status': number | null;
+ *  '@type': string | null;
+ * }} PacketHeaders
+ *
+ * @typedef {{
+ *  headers: PacketHeaders;
+ *  overflow: Buffer | null;
+ *  payload: Buffer | Uint8Array | null
+ * }} Packet
+ *
+ * @param {Buffer} buffer
+ * @returns {Packet | null}
+ */
+export function decodeFrame(buffer) {
+  if (buffer !== null) {
+    if (buffer.length < 2) {
+      return null;
+    }
+    /**
+     * @type {Packet}
+     */
+    let packet = {
+      headers: {
+        '@operator': null,
+        '@status': null,
+        '@type': null
+      },
+      overflow: null,
+      payload: null
+    };
+    let msgPayload = null;
+    let msgOverflow = null;
+    let fin = (buffer[0] & 128) === 128;
+    let operator = (buffer[0] & 15);
+    let mask = (buffer[1] & 128) === 128;
+    let payloadLength = buffer[1] & 127;
+    if (payloadLength <= 125) {
+
+      if (mask === true && buffer.length >= payloadLength + 6) {
+
+        let mask_data = buffer.slice(2, 6);
+
+        msgPayload = buffer.slice(6, 6 + payloadLength).map((value, index) => value ^ mask_data[index % 4]);
+        msgOverflow = buffer.slice(6 + payloadLength);
+
+      } else if (buffer.length >= payloadLength + 2) {
+
+        msgPayload = buffer.slice(2, 2 + payloadLength);
+        msgOverflow = buffer.slice(2 + payloadLength);
+
+      }
+
+    } else if (payloadLength === 126) {
+
+      payloadLength = (buffer[2] << 8) + buffer[3];
+
+      if (mask === true && buffer.length >= payloadLength + 8) {
+
+        let mask_data = buffer.slice(4, 8);
+
+        msgPayload = buffer.slice(8, 8 + payloadLength).map((value, index) => value ^ mask_data[index % 4]);
+        msgOverflow = buffer.slice(8 + payloadLength);
+
+      } else if (buffer.length >= payloadLength + 4) {
+
+        msgPayload = buffer.slice(4, 4 + payloadLength);
+        msgOverflow = buffer.slice(4 + payloadLength);
+
+      }
+
+    } else if (payloadLength === 127) {
+      const hi = (buffer[2] * 0x1000000) + ((buffer[3] << 16) | (buffer[4] << 8) | buffer[5]);
+      const lo = (buffer[6] * 0x1000000) + ((buffer[7] << 16) | (buffer[8] << 8) | buffer[9]);
+
+      payloadLength = (hi * 4294967296) + lo;
+
+      if (mask === true && buffer.length >= payloadLength + 14) {
+
+        let mask_data = buffer.slice(10, 14);
+
+        msgPayload = buffer.slice(14, 14 + payloadLength).map((value, index) => value ^ mask_data[index % 4]);
+        msgOverflow = buffer.slice(14 + payloadLength);
+
+      } else if (buffer.length >= payloadLength + 10) {
+
+        msgPayload = buffer.slice(10, 10 + payloadLength);
+        msgOverflow = buffer.slice(10 + payloadLength);
+
+      }
+
+    }
+
+
+    if (msgOverflow !== null && msgOverflow.length > 0) {
+      packet.overflow = msgOverflow;
+    }
+
+
+    if (msgPayload !== null) {
+
+      if (operator === 0x00) {
+
+        // 0x00: Continuation Frame (fragmented)
+
+        if (fin === true) {
+
+          // TODO for Reader: Concat previously cached fragmented frames
+          packet.headers['@operator'] = 0x00;
+          packet.headers['@status'] = null;
+          packet.headers['@type'] = mask === true ? 'request' : 'response';
+          packet.payload = msgPayload;
+
+        } else {
+
+          packet.headers['@operator'] = 0x00;
+          packet.headers['@status'] = null;
+          packet.headers['@type'] = mask === true ? 'request' : 'response';
+          packet.payload = msgPayload;
+
+        }
+
+      } else if (operator === 0x01 || operator === 0x02) {
+
+        // 0x01: Text Frame (possibly fragmented)
+        // 0x02: Binary Frame (possibly fragmented)
+
+        if (fin === true) {
+
+          packet.headers['@operator'] = operator;
+          packet.headers['@status'] = null;
+          packet.headers['@type'] = mask === true ? 'request' : 'response';
+          packet.payload = msgPayload;
+
+        } else {
+
+          // TODO for Reader: Cache fragmented frames
+          packet.headers['@operator'] = operator;
+          packet.headers['@status'] = null;
+          packet.headers['@type'] = mask === true ? 'request' : 'response';
+          packet.payload = msgPayload;
+
+        }
+
+      } else if (operator === 0x08) {
+
+        // 0x08: Connection Close Frame
+
+        packet.headers['@operator'] = 0x08;
+        packet.headers['@status'] = (msgPayload[0] << 8) + (msgPayload[1]);
+        packet.headers['@type'] = mask === true ? 'request' : 'response';
+        packet.payload = null;
+
+      } else if (operator === 0x09) {
+
+        // 0x09: Ping Frame
+
+        packet.headers['@operator'] = 0x09;
+        packet.headers['@status'] = null;
+        packet.headers['@type'] = 'request';
+        packet.payload = null;
+
+      } else if (operator === 0x0a) {
+
+        // 0x0a: Pong Frame
+
+        packet.headers['@operator'] = 0x0a;
+        packet.headers['@status'] = null;
+        packet.headers['@type'] = 'response';
+        packet.payload = null;
+
+      } else {
+
+        // Connection Close Frame
+
+        packet.headers['@operator'] = 0x08;
+        packet.headers['@status'] = 1002;
+        packet.headers['@type'] = mask === true ? 'request' : 'response';
+        packet.payload = msgPayload;
+
+      }
+      return packet;
+
+    }
+
+  }
+
+
+  return null;
+
+};
