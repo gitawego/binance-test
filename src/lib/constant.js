@@ -1,0 +1,8 @@
+export const FRAME_OPERATOR = {
+  CONTINUATION: 0x00,
+  TEXT: 0x01,
+  BINARY: 0x02,
+  CONNECTION_CLOSE: 0x08,
+  PING: 0x09,
+  PONG: 0x0a
+}

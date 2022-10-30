@@ -1,4 +1,4 @@
-import { decodeFrame } from './frames.js';
+import { decodeFrame } from './lib/decodeFrame.js';
 // import { Metric } from './lib/metric.js';
 import { NodeMetric } from './lib/NodeMetric.js';
 import { config } from './config.js';
@@ -24,18 +24,19 @@ export function getMetric(streamName) {
 
 /**
  *
- * @param {Buffer} data
+ * @param {ReturnType<decodeFrame>} decodedFrame
  */
-export function getMetricFromData(data) {
-  const payloadString = decodeFrame(data)?.payload?.toString();
+export function getMetricFromData(decodedFrame) {
+  const payloadString = decodedFrame?.payload?.toString();
+  console.log('payloadString', payloadString);
   try {
     const res = payloadString ? JSON.parse(payloadString) : null;
-    // console.log('payloadString', res);
     return {
       metric: res?.stream ? getMetric(res.stream) : null,
       record: res
     };
   } catch (error) {
+    console.log(decodedFrame, payloadString);
     return {
       error,
       rawRecord: payloadString
