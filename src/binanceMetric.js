@@ -1,8 +1,10 @@
 import { decodeFrame } from './frames.js';
-import { Metric } from './lib/metric.js';
+// import { Metric } from './lib/metric.js';
+import { NodeMetric } from './lib/NodeMetric.js';
+import { config } from './config.js';
 
 /**
- * @type {Map<string, Metric>}
+ * @type {Map<string, NodeMetric>}
  */
 const map = new Map();
 
@@ -11,10 +13,10 @@ const map = new Map();
  * @param {string} streamName
  */
 export function getMetric(streamName) {
-  const metric = map.get(streamName) || new Metric({
+  const metric = map.get(streamName) || new NodeMetric({
     id: streamName,
-    autoReport: true,
-    interval: 30e3
+    autoReport: config.autoReport,
+    interval: config.reportInterval
   });
   map.set(streamName, metric);
   return metric;
@@ -25,16 +27,18 @@ export function getMetric(streamName) {
  * @param {Buffer} data
  */
 export function getMetricFromData(data) {
+  const payloadString = decodeFrame(data)?.payload?.toString();
   try {
-    const payloadString = decodeFrame(data)?.payload?.toString();
     const res = payloadString ? JSON.parse(payloadString) : null;
+    // console.log('payloadString', res);
     return {
       metric: res?.stream ? getMetric(res.stream) : null,
       record: res
     };
   } catch (error) {
     return {
-      error
+      error,
+      rawRecord: payloadString
     }
   }
 

@@ -1,6 +1,8 @@
 import { randomBytes } from 'node:crypto'
 const TEXT = 0x1;
 const BINARY = 0x2;
+const PING = 0x9;
+const PONG = 0xA;
 
 /**
  *
@@ -18,6 +20,7 @@ function maskingData(data, maskingKey) {
  * @typedef {{
  *    fin?:number;
  *    masking?: boolean;
+ *    opcode?: number;
  * }} FrameOptions
  * @param {string | Buffer} data
  * @param {FrameOptions} options
@@ -25,7 +28,7 @@ function maskingData(data, maskingKey) {
  */
 export function makeFrame(data, options = {}) {
   const isTextData = typeof (data) == 'string';
-  const opcode = isTextData ? TEXT : BINARY;
+  const opcode = options.opcode ?? (isTextData ? TEXT : BINARY);
   data = Buffer.from(data);
   const fin = options.fin == null ? true : options.fin;
   const frameBytes = [fin ? (0x80 | opcode) : opcode];
@@ -55,6 +58,12 @@ export function makeFrame(data, options = {}) {
   }
 
   return frame;
+}
+
+export function pingFrame() {
+  return makeFrame(Buffer.from('PING'), {
+    opcode: PING
+  });
 }
 
 /**
