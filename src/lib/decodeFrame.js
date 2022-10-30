@@ -1,4 +1,4 @@
-import { FRAME_OPERATOR } from "./constant";
+import { FRAME_OPERATOR } from "./constant.js";
 
 /**
  * @type {(Buffer | Uint8Array)[]}

@@ -70,7 +70,4 @@ export class BianceClient {
   deframeData(data) {
     return decodeFrame(data);
   }
-  pong() {
-
-  }
 }

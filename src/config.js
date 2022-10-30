@@ -7,7 +7,7 @@ export const config = {
   server: {
     port: 443,
     host: 'stream.binance.com',
-    path: '/stream',
+    path: '/ws',
     headers: {
       'Connection': 'Upgrade',
       'Upgrade': 'websocket',
