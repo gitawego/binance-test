@@ -31,12 +31,12 @@ export class BianceClient {
 
   start() {
     if (this.opt.useWS) {
-      this.startWC();
+      this.startWS();
     } else {
       this.startNative()
     }
   }
-  startWC() {
+  startWS() {
     const ws = new WebSocket(this.wssUrl());
     ws.on('open', () => {
       console.log('connection etablished, sub to topics');
@@ -51,8 +51,9 @@ export class BianceClient {
   }
   /**
    * the custom native implementation has bug
-   * when there are multiples data in one single message
-   * to avoid implement all the frame decode mechanic, I used ws.
+   * when there are multiples data in one single message.
+   *
+   * to avoid implementing all the frame decode mechanic, I used ws.
    *
    * @deprecated
    */

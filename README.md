@@ -12,7 +12,7 @@
 ## Tasks
 
 - Open 1 "empty" websocket and then LIVE SUB-scribe to 2 trade streams, 2 aggTrade streams and 2 kline streams
-  - at first, I implemented websocket frame management to send and receive websocket data, but I encountered issue for parsing multiple data in one message. So I have to use the lib [ws](https://github.com/websockets/ws) to avoid re-implement all the frame decode mechanic.
+  - at first, I implemented websocket frame management to send and receive websocket data, but I encountered issue for parsing multiple data in one message. So I have to use the lib [ws](https://github.com/websockets/ws) to avoid re-implementing all the frame decode mechanic.
   - to test with custom implementation, set `useWS` to `false` in the `config.js`
 - Measure websocket event time => client receive time latency for each specific stream and print min/avg/max (optimize for high throughput) to console every 1 min
   - I implemented two classes:
