@@ -1,9 +1,11 @@
 import { randomBytes, createHash } from 'node:crypto';
 import { request } from 'node:https';
-import { getMetricFromData } from './binanceMetric.js';
+import { getMetricFromData, getMetricFromPayload } from './binanceMetric.js';
 import { makeFrame, pongFrame } from './lib/frames.js';
 import { decodeFrame } from './lib/decodeFrame.js';
 import { FRAME_OPERATOR } from './lib/constant.js';
+import WebSocket from 'ws';
+
 
 export class BianceClient {
   /**
@@ -23,7 +25,38 @@ export class BianceClient {
       return arr;
     }, []);
   }
+  wssUrl() {
+    return `wss://${this.opt.server.host}${this.opt.server.path}`;
+  }
+
   start() {
+    if (this.opt.useWS) {
+      this.startWC();
+    } else {
+      this.startNative()
+    }
+  }
+  startWC() {
+    const ws = new WebSocket(this.wssUrl());
+    ws.on('open', () => {
+      console.log('connection etablished, sub to topics');
+      ws.send(this.subToCoinsMessage());
+    });
+    ws.on('message', (data) => {
+      // console.log('received: %s', data);
+      const metric = getMetricFromPayload(data.toString('utf-8'));
+      metric.metric?.addRecord();
+      metric.nodeMetric?.addRecord();
+    });
+  }
+  /**
+   * the custom native implementation has bug
+   * when there are multiples data in one single message
+   * to avoid implement all the frame decode mechanic, I used ws.
+   *
+   * @deprecated
+   */
+  startNative() {
     const req = request({
       ...this.opt.server,
       headers: {
@@ -38,11 +71,7 @@ export class BianceClient {
         return;
       }
       console.log('got upgraded!', res.headers);
-      const data = JSON.stringify({
-        "method": "SUBSCRIBE",
-        "params": this.generateTopics(),
-        "id": 1
-      });
+      const data = this.subToCoinsMessage();
       socket.write(makeFrame(data));
       socket.on('data', data => {
         const deframed = this.deframeData(data);
@@ -52,6 +81,7 @@ export class BianceClient {
         }
         const metric = getMetricFromData(deframed);
         metric.metric?.addRecord();
+        metric.nodeMetric?.addRecord();
       });
       socket.on('end', () => {
         console.log('end');
@@ -60,6 +90,13 @@ export class BianceClient {
         console.log('closed', err);
         process.exit(0);
       })
+    });
+  }
+  subToCoinsMessage() {
+    return JSON.stringify({
+      "method": "SUBSCRIBE",
+      "params": this.generateTopics(),
+      "id": 1
     });
   }
   /**

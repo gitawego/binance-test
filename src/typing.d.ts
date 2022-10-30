@@ -5,6 +5,7 @@ export interface BinanceClientOptions {
   autoReport:     boolean;
   reportInterval: number;
   server:         Server;
+  useWS?:          boolean;
 }
 
 export interface Server {

@@ -25,7 +25,7 @@ export class NodeMetric {
   init() {
     if (this.opt?.autoReport) {
       this.intervalHandler = setInterval(() => {
-        console.log(`==== Metrics Report for ${this.id} ===`);
+        console.log(`==== Node Metrics Report for ${this.id} ===`);
         console.log(this.showMetric());
         console.log('===================================')
       }, this.interval);
@@ -48,7 +48,7 @@ export class NodeMetric {
       avg: this.histogram.mean,
       min: this.histogram.min,
       max: this.histogram.max,
-      p0: this.histogram.percentile(0),
+      p10: this.histogram.percentile(10),
       p50: this.histogram.percentile(50),
       p75: this.histogram.percentile(75),
       p99: this.histogram.percentile(99),
