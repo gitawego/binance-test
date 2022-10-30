@@ -18,7 +18,7 @@
   - I implemented two classes:
     - Metric: a simple way to mesure the avg/min/max metrics by recording data of a given interval (1 minute), and calculate the values
     - NodeMetric: I use [histogram](https://nodejs.org/api/perf_hooks.html#perf_hookscreatehistogramoptions) of nodejs
-  - Result: thoses two metrics have quite similar results.
+  - Result: thoses two metrics have some similar results.
 
 ## Run the program
 
