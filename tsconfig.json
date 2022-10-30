@@ -1,0 +1,15 @@
+{
+  "extends": "./config/tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "./dist",
+    "target": "es2019",
+    "module": "es2020",
+    "allowJs": true,
+    "checkJs": true,
+    "paths": {}
+  },
+  "include": [
+    "src"
+  ]
+}
