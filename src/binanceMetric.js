@@ -1,5 +1,4 @@
 import { decodeFrame } from './lib/decodeFrame.js';
-// import { Metric } from './lib/metric.js';
 import { NodeMetric } from './lib/NodeMetric.js';
 import { config } from './config.js';
 import { Metric } from './lib/metric.js';
